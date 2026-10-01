@@ -44,11 +44,15 @@ struct SystemOptions {
     bool show_performance_stats = true;  // main.py --performance-stats default true
     bool progress_json = false;      // studio: emit {"frame":N,"total":M}/line to stdout
 
-    // ponytail: main.py's remaining toggles (--skeletons, --player-trajectories,
-    // --court-trajectory, --shuttlecock-trajectory, --player-stats, --pose-roi,
-    // --save-images, --visualize-positions) are pinned to their Python defaults
-    // (all true except save-images / visualize-positions) to keep the CLI to the
-    // spec's minimal surface; heatmaps stay Python-side per spec.
+    bool show_skeletons = true;              // main.py --skeletons default true
+    bool show_player_trajectories = true;    // main.py --player-trajectories default true
+    bool show_court_trajectory = true;       // main.py --court-trajectory default true
+    bool show_shuttlecock_trajectory = true; // main.py --shuttlecock-trajectory default true
+    bool show_player_stats = true;           // main.py --player-stats default true
+    bool show_pose_roi = true;               // main.py --pose-roi default true
+
+    // ponytail: --save-images / --visualize-positions tetap pin ke default
+    // Python (false, tanpa flag CLI); heatmaps tetap Python-side per spec.
 };
 
 class BadmintonAnalysisSystem {

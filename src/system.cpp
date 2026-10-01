@@ -126,6 +126,9 @@ BadmintonAnalysisSystem::BadmintonAnalysisSystem(SystemOptions options)
     : opts_(std::move(options)),
       video_path_(opts_.video_path),
       show_display_(opts_.show_display),
+      show_pose_roi_(opts_.show_pose_roi),
+      show_court_trajectory_(opts_.show_court_trajectory),
+      show_player_stats_(opts_.show_player_stats),
       keep_audio_(opts_.keep_audio),
       show_performance_stats_(opts_.show_performance_stats),
       language_(opts_.language) {
@@ -153,10 +156,12 @@ BadmintonAnalysisSystem::BadmintonAnalysisSystem(SystemOptions options)
     // Python court_filter_margin default is 0.75 (player_pose.py); the contract
     // default of 1.0 differs — pass 0.75 explicitly for parity.
     pose_analyzer_ = std::make_unique<PoseAnalyzer>(*pose_processor_, 0.75);
+    skeleton_renderer_.show_skeletons = opts_.show_skeletons;
+    skeleton_renderer_.show_player_trajectories = opts_.show_player_trajectories;
 
     ShuttlecockTracker::Params sp;
     sp.trajectory_length = 30;            // Python trajectory_length=30
-    sp.show_trajectory = true;            // --shuttlecock-trajectory default true
+    sp.show_trajectory = opts_.show_shuttlecock_trajectory;
     sp.show_performance_stats = false;
     shuttlecock_tracker_ =
         std::make_unique<ShuttlecockTracker>(opts_.ball_model_path, sp);

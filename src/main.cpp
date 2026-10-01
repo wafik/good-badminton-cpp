@@ -28,6 +28,12 @@ void print_usage() {
                  "  --display true|false        show video window (default: false, headless)\n"
                  "  --language zh|en            stats panel language (default: zh; v1 is EN text)\n"
                  "  --performance-stats true|false  per-5s frame timings (default: true)\n"
+                 "  --skeletons true|false     draw pose skeleton (default: true)\n"
+                 "  --player-trajectories true|false  player dots+trails (default: true)\n"
+                 "  --court-trajectory true|false     court trajectory overlay (default: true)\n"
+                 "  --shuttlecock-trajectory true|false  shuttle trail (default: true)\n"
+                 "  --player-stats true|false  stats panel (default: true)\n"
+                 "  --pose-roi true|false       pose ROI overlay (default: true)\n"
                  "  --progress-json            emit one {\"frame\":N,\"total\":M} JSON line per frame\n"
                  "  -h, --help\n"
                  "Exit codes: 2 model load failure, 3 ffmpeg failure, 4 court annotation\n"
@@ -110,6 +116,18 @@ int main(int argc, char** argv) {
             if (!parse_bool(need("--performance-stats"), opts.show_performance_stats)) {
                 bad_value = true;
             }
+        } else if (a == "--skeletons") {
+            if (!parse_bool(need("--skeletons"), opts.show_skeletons)) bad_value = true;
+        } else if (a == "--player-trajectories") {
+            if (!parse_bool(need("--player-trajectories"), opts.show_player_trajectories)) bad_value = true;
+        } else if (a == "--court-trajectory") {
+            if (!parse_bool(need("--court-trajectory"), opts.show_court_trajectory)) bad_value = true;
+        } else if (a == "--shuttlecock-trajectory") {
+            if (!parse_bool(need("--shuttlecock-trajectory"), opts.show_shuttlecock_trajectory)) bad_value = true;
+        } else if (a == "--player-stats") {
+            if (!parse_bool(need("--player-stats"), opts.show_player_stats)) bad_value = true;
+        } else if (a == "--pose-roi") {
+            if (!parse_bool(need("--pose-roi"), opts.show_pose_roi)) bad_value = true;
         } else if (a == "--progress-json") {
             opts.progress_json = true;
         } else if (!a.empty() && a[0] == '-') {
