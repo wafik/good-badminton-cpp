@@ -161,11 +161,13 @@ inline std::vector<int> nms_xywh(std::vector<cv::Rect2f>& boxes,
 // GPU auto-detect (Windows): bundle memakai onnxruntime build DirectML —
 // DLL-nya mengekspor fungsi ini; build CPU (dev/CI) tidak mengekspor →
 // GetProcAddress NULL → tetap CPU. Env GB_FORCE_CPU=1 memaksa CPU
-// (parity/debug). Provider gagal init? lepas status, lanjut CPU.
-inline void maybe_add_gpu(Ort::SessionOptions& opts) {
+// (parity/debug). Provider gagal daftar? lepas status → CPU.
+// Return true = EP terpasang (belum tentu jalan — bisa gagal saat inferensi;
+// lihat fallback di OnnxModel::run).
+inline bool maybe_add_gpu(Ort::SessionOptions& opts) {
 #ifdef _WIN32
     char force[4] = {};
-    if (GetEnvironmentVariableA("GB_FORCE_CPU", force, sizeof(force)) > 0) return;
+    if (GetEnvironmentVariableA("GB_FORCE_CPU", force, sizeof(force)) > 0) return false;
     using DmlFn = OrtStatus*(ORT_API_CALL*)(OrtSessionOptions*, int);
     static DmlFn fn = []() -> DmlFn {
         HMODULE h = GetModuleHandleA("onnxruntime.dll");
@@ -173,19 +175,21 @@ inline void maybe_add_gpu(Ort::SessionOptions& opts) {
                        GetProcAddress(h, "OrtSessionOptionsAppendExecutionProvider_DML"))
                  : nullptr;
     }();
-    if (!fn) return;
+    if (!fn) return false;
     if (OrtStatus* st =
             fn(static_cast<OrtSessionOptions*>(opts), 0)) {
         Ort::GetApi().ReleaseStatus(st);
-    } else {
-        static bool logged = false;
-        if (!logged) {
-            std::cout << "[gpu] DirectML execution provider aktif (GPU terdeteksi otomatis)\n";
-            logged = true;
-        }
+        return false;
     }
+    static bool logged = false;
+    if (!logged) {
+        std::cout << "[gpu] DirectML execution provider aktif (GPU terdeteksi otomatis)\n";
+        logged = true;
+    }
+    return true;
 #else
     (void)opts;
+    return false;
 #endif
 }
 
@@ -197,28 +201,42 @@ struct OnnxModel {
     bool dynamic_hw = false;
     int static_h = 0;
     int static_w = 0;
+    std::string path_;  // disimpan utk recreate session saat fallback CPU
+    bool gpu_ = false;  // EP DML terpasang di session skrg (gagal runtime → false)
 
     static Ort::Env& env() {
         static Ort::Env e{ORT_LOGGING_LEVEL_WARNING, "gb_detect"};
         return e;
     }
 
-    bool load(const std::string& path, std::string& err) {
+    // Emplace session dari path_. with_gpu=true pasang DirectML (Windows only).
+    bool create(bool with_gpu, std::string& err) {
         try {
             Ort::SessionOptions opts;
             opts.SetGraphOptimizationLevel(GraphOptimizationLevel::ORT_ENABLE_ALL);
-            maybe_add_gpu(opts);
+            gpu_ = with_gpu && maybe_add_gpu(opts);
 #ifdef _WIN32
             // ORTCHAR_T is wchar_t on Windows; model_path arrives as UTF-8.
-            int wn = MultiByteToWideChar(CP_UTF8, 0, path.c_str(),
-                                         static_cast<int>(path.size()), nullptr, 0);
+            int wn = MultiByteToWideChar(CP_UTF8, 0, path_.c_str(),
+                                         static_cast<int>(path_.size()), nullptr, 0);
             std::wstring wpath(wn, L'\0');
-            MultiByteToWideChar(CP_UTF8, 0, path.c_str(),
-                                static_cast<int>(path.size()), &wpath[0], wn);
+            MultiByteToWideChar(CP_UTF8, 0, path_.c_str(),
+                                static_cast<int>(path_.size()), &wpath[0], wn);
             session.emplace(env(), wpath.c_str(), opts);
 #else
-            session.emplace(env(), path.c_str(), opts);
+            session.emplace(env(), path_.c_str(), opts);
 #endif
+            return true;
+        } catch (const std::exception& e) {
+            err = e.what();
+            return false;
+        }
+    }
+
+    bool load(const std::string& path, std::string& err) {
+        path_ = path;
+        if (!create(true, err)) return false;
+        try {
             if (session->GetInputCount() != 1 || session->GetOutputCount() < 1) {
                 err = "expected exactly 1 input";
                 session.reset();
@@ -279,6 +297,19 @@ struct OnnxModel {
             out.assign(p, p + n);
             return true;
         } catch (const std::exception& e) {
+            // DirectML bisa gagal di runtime (ops/shape tak didukung GPU tertentu)
+            // — jangan diam2 jadi nol-detection. Rebuild CPU, ulangi run yang sama.
+            if (gpu_) {
+                gpu_ = false;
+                std::string ce;
+                if (create(false, ce)) {
+                    std::cout << "[gpu] DirectML gagal saat inferensi → fallback CPU "
+                                 "(hasil tetap paritas)\n";
+                    return run(data, dims, out, out_dims, err);
+                }
+                err = ce;
+                return false;
+            }
             err = e.what();
             return false;
         }
