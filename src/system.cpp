@@ -193,9 +193,7 @@ BadmintonAnalysisSystem::~BadmintonAnalysisSystem() = default;
 
 std::string BadmintonAnalysisSystem::get_template_path() const {
     if (opts_.template_path.empty()) {
-        // Python opens a tkinter file picker here; headless per spec.
-        throw std::runtime_error(
-            "No court template image selected. Pass --template to run headless.");
+        return {};  // auto: process_video picks a frame from the video itself
     }
     std::error_code ec;
     if (!fs::exists(opts_.template_path, ec)) {
@@ -395,8 +393,41 @@ void BadmintonAnalysisSystem::process_video(std::function<void(int, int)> progre
     frame_width_ = static_cast<int>(cap.get(cv::CAP_PROP_FRAME_WIDTH));
     frame_height_ = static_cast<int>(cap.get(cv::CAP_PROP_FRAME_HEIGHT));
 
-    const std::string template_path = get_template_path();
-    const auto [template_gray, template_color] = load_template(template_path);
+    std::string template_path = get_template_path();
+    cv::Mat template_gray;
+    cv::Mat template_color;
+    if (template_path.empty()) {
+        // Auto: try frames at several positions (middle first), take the
+        // first whose court corners resolve; fall back to the first readable
+        // frame (gate-only; corner detection then runs on it anyway below).
+        const int total = std::max(total_frames, 1);
+        cv::Mat fallback;
+        for (const int pct : {50, 25, 75, 0}) {
+            cap.set(cv::CAP_PROP_POS_FRAMES, static_cast<int>(total * (pct / 100.0)));
+            cv::Mat cand;
+            if (!cap.read(cand) || cand.empty()) continue;
+            if (fallback.empty()) fallback = cand.clone();
+            if (resolve_court_corners(cand).corners.has_value()) {
+                template_color = cand;
+                break;
+            }
+        }
+        if (template_color.empty()) template_color = fallback;
+        if (template_color.empty()) {
+            throw std::runtime_error("Unable to read frames from video: " + video_path_);
+        }
+        cap.set(cv::CAP_PROP_POS_FRAMES, 0);  // rewind for the main loop
+        template_path = (fs::path(save_dir_) / "auto_template.png").string();
+        if (!cv::imwrite(template_path, template_color)) {
+            throw std::runtime_error("Unable to write auto template: " + template_path);
+        }
+        std::printf("Auto court template: %s\n", template_path.c_str());
+        cv::cvtColor(template_color, template_gray, cv::COLOR_BGR2GRAY);  // already frame size
+    } else {
+        const auto [gray, color] = load_template(template_path);
+        template_gray = gray;
+        template_color = color;
+    }
 
     setup_video_writer();  // temp mp4v under save_dir
     const CourtAnnotation ann = setup_court_annotation(template_color);

@@ -27,7 +27,7 @@ cmake --build build --config Release
 gb_cpp [input_video] [options]
   --out DIR                  output directory (default: outputs/<name>)
   --annotations PATH         court annotations file
-  --template PATH            court template image
+  --template PATH            court template image (default: auto — a frame from the video)
   --ball-model PATH          shuttlecock ONNX
   --yolo-pose-model PATH     pose ONNX
   --audio true|false         keep original audio (default: true)

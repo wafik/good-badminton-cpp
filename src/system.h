@@ -35,7 +35,7 @@ struct SystemOptions {
     std::string video_path = "videos/demo.mp4";       // main.py --video-path default
     std::string output_dir;                           // empty -> outputs/<video_name>
     std::string annotations_path;                     // empty -> <output_dir>/court_annotations.txt
-    std::string template_path = "templates/demo.png"; // main.py --template-path default
+    std::string template_path;                         // empty -> auto: pick a frame from the video
     std::string ball_model_path;                      // main.cpp resolves the .onnx default
     std::string pose_model_path;
     bool keep_audio = true;          // main.py --audio default true

@@ -19,7 +19,7 @@ void print_usage() {
                  "  --out DIR                   output directory (default: outputs/<name>)\n"
                  "  --annotations PATH          court annotations file\n"
                  "                              (default: <out>/court_annotations.txt)\n"
-                 "  --template PATH             court template image (default: templates/demo.png)\n"
+                 "  --template PATH             court template image (default: auto — a frame from the video)\n"
                  "  --ball-model PATH           shuttlecock ONNX\n"
                  "                              (default: Good-Badminton/weights/yolo11s-ball.onnx)\n"
                  "  --yolo-pose-model PATH      pose ONNX\n"
