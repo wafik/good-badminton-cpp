@@ -1,0 +1,22 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  rally-selfcheck:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build test_rally (no OpenCV/ORT needed)
+        shell: cmd
+        run: |
+          call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+          cl /std:c++17 /EHsc /I include tests\test_rally.cpp src\core\rally_state.cpp /Fe:test_rally.exe
+
+      - name: Run rally self-check
+        shell: cmd
+        run: test_rally.exe

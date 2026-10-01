@@ -1,0 +1,15 @@
+# build artifacts & vendored deps (1.2G) — never commit
+build/
+third_party/
+outputs/
+*.exe
+*.dll
+*.lib
+*.obj
+
+# logs / local scratch
+*.log
+*.err
+.claude-flow/
+.superpowers/
+run_test4.*
