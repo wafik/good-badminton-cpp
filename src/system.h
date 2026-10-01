@@ -52,7 +52,8 @@ struct SystemOptions {
     bool show_pose_roi = true;               // main.py --pose-roi default true
 
     // ponytail: --save-images / --visualize-positions tetap pin ke default
-    // Python (false, tanpa flag CLI); heatmaps tetap Python-side per spec.
+    // Python (--save-images default false, --visualize-positions default true,
+    // tanpa flag CLI); heatmaps tetap Python-side per spec.
 };
 
 class BadmintonAnalysisSystem {
