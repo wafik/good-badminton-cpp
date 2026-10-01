@@ -20,6 +20,9 @@
 #include <utility>
 #include <vector>
 #include <opencv2/opencv.hpp>
+// OpenCV 5 umbrella no longer pulls imgproc (contourArea, getPerspectiveTransform,
+// DIST_L2…) — include it explicitly; harmless no-op on OpenCV 4.
+#include <opencv2/imgproc.hpp>
 #include "gb/types.h"
 
 namespace gb {

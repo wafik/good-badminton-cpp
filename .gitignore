@@ -1,6 +1,8 @@
 # build artifacts & vendored deps (1.2G) — never commit
 build/
-third_party/
+# ignore deps content but keep the single-header JSON (needed to build in CI)
+third_party/*
+!third_party/nlohmann_json.hpp
 outputs/
 *.exe
 *.dll

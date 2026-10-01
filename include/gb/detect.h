@@ -80,7 +80,10 @@ public:
         double max_box_area_ratio = 0.004;
         double max_aspect_ratio = 4.0;
     };
-    ShuttlecockTracker(const std::string& model_path, Params params = {});
+    // ponytail: no `= {}` default — nested-class NSDMI in a default argument
+    // is a hard error on gcc/clang (MSVC-only leniency); sole caller passes
+    // Params explicitly (system.cpp).
+    ShuttlecockTracker(const std::string& model_path, Params params);
     ~ShuttlecockTracker();
     ShuttlecockTracker(const ShuttlecockTracker&) = delete;
     ShuttlecockTracker& operator=(const ShuttlecockTracker&) = delete;
