@@ -32,7 +32,7 @@ gb_cpp [input_video] [options]
   --yolo-pose-model PATH     pose ONNX
   --audio true|false         keep original audio (default: true)
   --display true|false       show video window (default: false, headless)
-  --language zh|en           stats panel language (default: zh)
+  --language zh|en|id        stats panel language (default: zh; zh renders EN text)
   --performance-stats ...    per-5s frame timings (default: true)
 
   # 6 display toggle — default true = paritas Python (main.py)

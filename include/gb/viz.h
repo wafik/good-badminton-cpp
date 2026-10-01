@@ -1,8 +1,8 @@
 #pragma once
 // Live overlays. Port sources: visualization/stats.py, player_pose.py (draw
-// side), court_trajectory.py. EN-only in v1 (no PIL/CJK; cv2.putText).
+// side), court_trajectory.py. Stats text: en/id via cv::putText (Latin).
 // ponytail: zh stats text needs freetype (Python zh path uses PIL ImageFont)
-// — out of scope per spec ("zh fonts via freetype later").
+// — out of scope per spec ("zh fonts via freetype later"); zh falls back to EN.
 #include <deque>
 #include <map>
 #include <optional>
@@ -40,8 +40,8 @@ private:
                            const cv::Scalar& bg_color, double bg_alpha,
                            std::vector<TextItem>& text_items);
 
-    // Sizes from Python __init__ (scale vs 1920x1080 reference). language_ is
-    // stored for parity but only the EN path is implemented (see file top).
+    // Sizes from Python __init__ (scale vs 1920x1080 reference). language_
+    // picks en/id texts; zh falls back to EN (freetype — see file top).
     std::string language_;
     int frame_width_ = 0;
     int frame_height_ = 0;

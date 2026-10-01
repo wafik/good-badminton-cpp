@@ -1,5 +1,5 @@
-// Port of visualization/stats.py — EN path only (cv2.putText; zh path used
-// PIL ImageFont in Python and needs freetype, out of scope for v1).
+// Port of visualization/stats.py — en/id text via cv::putText (Latin; the zh
+// path used PIL ImageFont in Python and needs freetype, still out of scope).
 #include "gb/viz.h"
 
 #include <algorithm>
@@ -15,18 +15,28 @@ std::string fmt2(double v) {
     return buf;
 }
 
-// texts['en'] (stats.py)
-const char* kRally = "Rally";
-const char* kUpperPlayer = "Upper Player";
-const char* kLowerPlayer = "Lower Player";
-const char* kStats = "Stats";
-const char* kCurrentSpeed = "Current Speed";
-const char* kCurrentRally = "Current Rally";
-const char* kMatchTotal = "Match Total";
-const char* kDistance = "Distance";
-const char* kAvgSpeed = "Avg Speed";
-const char* kMaxSpeed = "Max Speed";
-const char* kTotalDistance = "Total Distance";
+// texts['en'] (stats.py) + teks Indonesia. Keduanya Latin → cv::putText
+// cukup (hanya zh yang butuh freetype, tetap fallback ke teks EN).
+struct Texts {
+    const char* rally;
+    const char* upper;
+    const char* lower;
+    const char* stats;
+    const char* current_speed;
+    const char* current_rally;
+    const char* match_total;
+    const char* distance;
+    const char* avg_speed;
+    const char* max_speed;
+    const char* total_distance;
+};
+const Texts kEn{"Rally", "Upper Player", "Lower Player", "Stats",
+                "Current Speed", "Current Rally", "Match Total",
+                "Distance", "Avg Speed", "Max Speed", "Total Distance"};
+const Texts kId{"Rally", "Pemain Atas", "Pemain Bawah", "Statistik",
+                "Kecepatan Saat Ini", "Rally Saat Ini", "Total Pertandingan",
+                "Jarak", "Kecepatan Rata-rata", "Kecepatan Maks",
+                "Total Jarak"};
 const char* kUnitSpeed = "m/s";
 const char* kUnitDistance = "m";
 
@@ -49,13 +59,13 @@ StatsVisualizer::StatsVisualizer(int frame_width, int frame_height,
     panel_width_ = std::max(180, static_cast<int>(180 * scale_factor));
     panel_height_ = std::max(150, static_cast<int>(200 * scale_factor));
     margin_ = std::max(5, static_cast<int>(10 * scale_factor));
-    // ponytail: language_ stored but ignored — only texts['en'] implemented.
 }
 
 void StatsVisualizer::draw_player_stats(cv::Mat& frame,
                                         const MovementStats& movement_stats,
                                         int rally_count) {
     if (frame.empty()) return;
+    const Texts& t = language_ == "id" ? kId : kEn;
 
     // Python: rally_pos_y = int(panel_height + frame_height * 0.1)
     int rally_pos_y =
@@ -63,7 +73,7 @@ void StatsVisualizer::draw_player_stats(cv::Mat& frame,
 
     // Queue: rally text first, then upper panel lines, then lower panel lines.
     std::vector<TextItem> text_items;
-    text_items.push_back({std::string(kRally) + ": " + std::to_string(rally_count),
+    text_items.push_back({std::string(t.rally) + ": " + std::to_string(rally_count),
                           cv::Point(margin_, rally_pos_y),
                           font_scale_ * 1.5, cv::Scalar(0, 165, 255),
                           thickness_ + 2});
@@ -75,22 +85,26 @@ void StatsVisualizer::draw_player_stats(cv::Mat& frame,
         return it == movement_stats.end() ? kEmpty : it->second;
     };
 
-    draw_player_panel(frame, kUpperPlayer, slot("upper"), margin_,
+    draw_player_panel(frame, t.upper, slot("upper"), margin_,
                       static_cast<int>(frame_height_ * 0.05), panel_width_,
                       panel_height_, cv::Scalar(0, 255, 255), font_scale_,
                       thickness_, line_height_, kBackgroundColor,
                       kBackgroundAlpha, text_items);
 
-    draw_player_panel(frame, kLowerPlayer, slot("lower"), margin_,
+    draw_player_panel(frame, t.lower, slot("lower"), margin_,
                       static_cast<int>(frame_height_ * 0.55), panel_width_,
                       panel_height_, cv::Scalar(255, 0, 255), font_scale_,
                       thickness_, line_height_, kBackgroundColor,
                       kBackgroundAlpha, text_items);
 
     // Python _draw_text_batch (EN): putText in queue order, LINE_AA.
-    for (const auto& t : text_items) {
-        cv::putText(frame, t.text, t.pos, cv::FONT_HERSHEY_SIMPLEX, t.font_scale,
-                    t.color, t.thickness, cv::LINE_AA);
+    // +bayangan gelap 1px: teks tetap terbaca di atas lapangan terang.
+    for (const auto& titem : text_items) {
+        cv::putText(frame, titem.text, titem.pos + cv::Point(1, 1),
+                    cv::FONT_HERSHEY_SIMPLEX, titem.font_scale,
+                    cv::Scalar(0, 0, 0), titem.thickness + 1, cv::LINE_AA);
+        cv::putText(frame, titem.text, titem.pos, cv::FONT_HERSHEY_SIMPLEX,
+                    titem.font_scale, titem.color, titem.thickness, cv::LINE_AA);
     }
 }
 
@@ -105,6 +119,7 @@ void StatsVisualizer::draw_player_panel(cv::Mat& frame,
                                         std::vector<TextItem>& text_items) {
     // Python _draw_player_panel inner margin
     int margin = std::max(5, static_cast<int>(panel_width * 0.05));
+    const Texts& t = language_ == "id" ? kId : kEn;
 
     // Panel background: rect on a copy, alpha-blended into the frame.
     cv::Mat overlay = frame.clone();
@@ -121,41 +136,41 @@ void StatsVisualizer::draw_player_panel(cv::Mat& frame,
     };
 
     // 1. title (player color, bolder)
-    queue(player_name + " " + kStats + ":", cv::Point(x_pos, y_pos),
+    queue(player_name + " " + t.stats + ":", cv::Point(x_pos, y_pos),
           font_scale * 1.1, color, thickness + 1);
     // 2. current speed
-    queue(std::string(kCurrentSpeed) + ": " + fmt2(stats.current_speed) + " " +
+    queue(std::string(t.current_speed) + ": " + fmt2(stats.current_speed) + " " +
               kUnitSpeed,
           cv::Point(x_pos, y_pos + line_height), font_scale, kWhite, thickness);
 
     // 3..6. current rally block
     int y_rally = y_pos + 2 * line_height;
-    queue(std::string(kCurrentRally) + ":", cv::Point(x_pos, y_rally),
+    queue(std::string(t.current_rally) + ":", cv::Point(x_pos, y_rally),
           font_scale, kWhite, thickness);
-    queue(std::string(" ") + kDistance + ": " + fmt2(stats.rally_distance) + " " +
+    queue(std::string(" ") + t.distance + ": " + fmt2(stats.rally_distance) + " " +
               kUnitDistance,
           cv::Point(x_pos, y_rally + line_height), font_scale, kWhite, thickness);
-    queue(std::string(" ") + kAvgSpeed + ": " + fmt2(stats.rally_avg_speed) +
+    queue(std::string(" ") + t.avg_speed + ": " + fmt2(stats.rally_avg_speed) +
               " " + kUnitSpeed,
           cv::Point(x_pos, y_rally + 2 * line_height), font_scale, kWhite,
           thickness);
-    queue(std::string(" ") + kMaxSpeed + ": " + fmt2(stats.rally_max_speed) +
+    queue(std::string(" ") + t.max_speed + ": " + fmt2(stats.rally_max_speed) +
               " " + kUnitSpeed,
           cv::Point(x_pos, y_rally + 3 * line_height), font_scale, kWhite,
           thickness);
 
     // 7..10. match total block
     int y_match = y_rally + 4 * line_height;
-    queue(std::string(kMatchTotal) + ":", cv::Point(x_pos, y_match), font_scale,
+    queue(std::string(t.match_total) + ":", cv::Point(x_pos, y_match), font_scale,
           kWhite, thickness);
-    queue(std::string(" ") + kTotalDistance + ": " +
+    queue(std::string(" ") + t.total_distance + ": " +
               fmt2(stats.match_distance) + " " + kUnitDistance,
           cv::Point(x_pos, y_match + line_height), font_scale, kWhite, thickness);
-    queue(std::string(" ") + kAvgSpeed + ": " + fmt2(stats.match_avg_speed) +
+    queue(std::string(" ") + t.avg_speed + ": " + fmt2(stats.match_avg_speed) +
               " " + kUnitSpeed,
           cv::Point(x_pos, y_match + 2 * line_height), font_scale, kWhite,
           thickness);
-    queue(std::string(" ") + kMaxSpeed + ": " + fmt2(stats.match_max_speed) +
+    queue(std::string(" ") + t.max_speed + ": " + fmt2(stats.match_max_speed) +
               " " + kUnitSpeed,
           cv::Point(x_pos, y_match + 3 * line_height), font_scale, kWhite,
           thickness);

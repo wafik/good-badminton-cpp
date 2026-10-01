@@ -26,7 +26,8 @@ void print_usage() {
                  "                              (default: Good-Badminton/weights/yolo11n-pose-dyn.onnx)\n"
                  "  --audio true|false          keep original audio (default: true)\n"
                  "  --display true|false        show video window (default: false, headless)\n"
-                 "  --language zh|en            stats panel language (default: zh; v1 is EN text)\n"
+                 "  --language zh|en|id        stats panel language (default: zh; zh renders EN text,\n"
+                 "                              id = teks Indonesia — both Latin via cv::putText)\n"
                  "  --performance-stats true|false  per-5s frame timings (default: true)\n"
                  "  --skeletons true|false     draw pose skeleton (default: true)\n"
                  "  --player-trajectories true|false  player dots+trails (default: true)\n"
@@ -111,7 +112,10 @@ int main(int argc, char** argv) {
             if (!parse_bool(need("--display"), opts.show_display)) bad_value = true;
         } else if (a == "--language") {
             opts.language = need("--language");
-            if (opts.language != "zh" && opts.language != "en") bad_value = true;
+            if (opts.language != "zh" && opts.language != "en" &&
+                opts.language != "id") {
+                bad_value = true;
+            }
         } else if (a == "--performance-stats") {
             if (!parse_bool(need("--performance-stats"), opts.show_performance_stats)) {
                 bad_value = true;
