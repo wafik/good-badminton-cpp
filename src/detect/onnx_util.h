@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
+#include <iostream>
 #include <optional>
 #include <string>
 #include <vector>
@@ -157,6 +158,37 @@ inline std::vector<int> nms_xywh(std::vector<cv::Rect2f>& boxes,
     return keep;
 }
 
+// GPU auto-detect (Windows): bundle memakai onnxruntime build DirectML —
+// DLL-nya mengekspor fungsi ini; build CPU (dev/CI) tidak mengekspor →
+// GetProcAddress NULL → tetap CPU. Env GB_FORCE_CPU=1 memaksa CPU
+// (parity/debug). Provider gagal init? lepas status, lanjut CPU.
+inline void maybe_add_gpu(Ort::SessionOptions& opts) {
+#ifdef _WIN32
+    char force[4] = {};
+    if (GetEnvironmentVariableA("GB_FORCE_CPU", force, sizeof(force)) > 0) return;
+    using DmlFn = OrtStatus*(ORT_API_CALL*)(OrtSessionOptions*, int);
+    static DmlFn fn = []() -> DmlFn {
+        HMODULE h = GetModuleHandleA("onnxruntime.dll");
+        return h ? reinterpret_cast<DmlFn>(
+                       GetProcAddress(h, "OrtSessionOptionsAppendExecutionProvider_DML"))
+                 : nullptr;
+    }();
+    if (!fn) return;
+    if (OrtStatus* st =
+            fn(static_cast<OrtSessionOptions*>(opts), 0)) {
+        Ort::GetApi().ReleaseStatus(st);
+    } else {
+        static bool logged = false;
+        if (!logged) {
+            std::cout << "[gpu] DirectML execution provider aktif (GPU terdeteksi otomatis)\n";
+            logged = true;
+        }
+    }
+#else
+    (void)opts;
+#endif
+}
+
 // Minimal ORT session wrapper: one input / one output, float32 NCHW.
 struct OnnxModel {
     std::optional<Ort::Session> session;
@@ -175,6 +207,7 @@ struct OnnxModel {
         try {
             Ort::SessionOptions opts;
             opts.SetGraphOptimizationLevel(GraphOptimizationLevel::ORT_ENABLE_ALL);
+            maybe_add_gpu(opts);
 #ifdef _WIN32
             // ORTCHAR_T is wchar_t on Windows; model_path arrives as UTF-8.
             int wn = MultiByteToWideChar(CP_UTF8, 0, path.c_str(),
