@@ -247,8 +247,12 @@ struct OnnxModel {
             auto out = session->GetOutputNameAllocated(0, alloc);
             input_name = in.get();
             output_name = out.get();
-            auto ti = session->GetInputTypeInfo(0).GetTensorTypeAndShapeInfo();
-            auto dims = ti.GetShape();
+            // tinfo wajib hidup sampai GetShape: GetTensorTypeAndShapeInfo()
+            // hanya view Unowned ke memori milik TypeInfo — TypeInfo sementara
+            // di statement sebelumnya di-release di akhir statement → UAF di
+            // GetShape (segfault macOS saat load; Windows kebetulan lolos).
+            auto tinfo = session->GetInputTypeInfo(0);
+            auto dims = tinfo.GetTensorTypeAndShapeInfo().GetShape();
             if (dims.size() != 4) {
                 err = "input rank != 4";
                 session.reset();
