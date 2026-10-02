@@ -640,7 +640,8 @@ void BadmintonAnalysisSystem::cleanup(cv::VideoCapture& cap) {
 
     std::string last_error;
     const auto try_encode = [&](const std::optional<std::string>& audio) {
-        gb::encode_compatible_mp4(temp_output_video_path_, output_video_path_, audio);
+        gb::encode_compatible_mp4(temp_output_video_path_, output_video_path_, audio,
+                                  opts_.output_codec);
         gb::remove_file(temp_output_video_path_);  // Python cleanup_temp_files on success
     };
     const auto run_without_audio = [&]() {

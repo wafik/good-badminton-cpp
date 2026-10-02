@@ -43,6 +43,7 @@ struct SystemOptions {
     std::string language = "zh";     // main.py --language default (viz v1 is EN-only)
     bool show_performance_stats = true;  // main.py --performance-stats default true
     bool progress_json = false;      // studio: emit {"frame":N,"total":M}/line to stdout
+    std::string output_codec = "h264";  // --output-codec: h264 (default = current) | h265
 
     bool show_skeletons = true;              // main.py --skeletons default true
     bool show_player_trajectories = true;    // main.py --player-trajectories default true

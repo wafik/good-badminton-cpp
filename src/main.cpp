@@ -39,6 +39,8 @@ void print_usage() {
                  "  --shuttlecock-trajectory true|false  shuttle trail (default: true)\n"
                  "  --player-stats true|false  stats panel (default: true)\n"
                  "  --pose-roi true|false       pose ROI overlay (default: true)\n"
+                 "  --output-codec h264|h265    video encoder (default: h264 = fast; h265 =\n"
+                 "                              smaller file, ~2x slower encode)\n"
                  "  --progress-json            emit one {\"frame\":N,\"total\":M} JSON line per frame\n"
                  "  -h, --help\n"
                  "Exit codes: 2 model load failure, 3 ffmpeg failure, 4 court annotation\n"
@@ -153,6 +155,11 @@ int main(int argc, char** argv) {
             if (!parse_bool(need("--player-stats"), opts.show_player_stats)) bad_value = true;
         } else if (a == "--pose-roi") {
             if (!parse_bool(need("--pose-roi"), opts.show_pose_roi)) bad_value = true;
+        } else if (a == "--output-codec") {
+            opts.output_codec = need("--output-codec");
+            if (opts.output_codec != "h264" && opts.output_codec != "h265") {
+                bad_value = true;
+            }
         } else if (a == "--progress-json") {
             opts.progress_json = true;
         } else if (!a.empty() && a[0] == '-') {

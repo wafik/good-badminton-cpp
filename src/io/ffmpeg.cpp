@@ -196,7 +196,8 @@ bool has_audio_track(const std::string& path) {
 }
 
 void encode_compatible_mp4(const std::string& temp_video, const std::string& output,
-                           const std::optional<std::string>& audio_source) {
+                           const std::optional<std::string>& audio_source,
+                           const std::string& codec) {
     namespace fs = std::filesystem;
 
     std::error_code ec;
@@ -232,10 +233,21 @@ void encode_compatible_mp4(const std::string& temp_video, const std::string& out
     } else {
         cmd.push_back("-an");
     }
-    const char* tail_args[] = {"-c:v",  "libx264", "-preset", "medium", "-crf",
-                               "20",    "-pix_fmt", "yuv420p", "-c:a",  "aac",
-                               "-b:a",  "160k",    "-movflags", "+faststart"};
-    for (const char* a : tail_args) cmd.push_back(a);
+    // h264 = current behavior (default); h265 = libx265, ~2x slower encode for
+    // a smaller file. -tag:v hvc1 keeps QuickTime/macOS happy. Any other codec
+    // string (CLI already validates) defensively falls back to h264.
+    std::vector<std::string> tail_args;
+    if (codec == "h265") {
+        tail_args = {"-c:v",  "libx265", "-preset", "medium",  "-crf",
+                     "20",    "-pix_fmt", "yuv420p", "-tag:v", "hvc1",
+                     "-c:a",  "aac",      "-b:a",    "160k",   "-movflags",
+                     "+faststart"};
+    } else {
+        tail_args = {"-c:v",  "libx264", "-preset", "medium", "-crf",
+                     "20",    "-pix_fmt", "yuv420p", "-c:a",  "aac",
+                     "-b:a",  "160k",    "-movflags", "+faststart"};
+    }
+    for (const auto& a : tail_args) cmd.push_back(a);
     cmd.push_back(final_path.string());
 
     const RunResult r = run_capture(cmd, 180000);  // Python timeout=180

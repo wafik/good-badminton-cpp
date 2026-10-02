@@ -38,9 +38,13 @@ bool has_audio_track(const std::string& path);
 // Python: encode_vscode_compatible_mp4 / process_video_with_audio /
 // process_video_without_audio: libx264 crf20, aac 160k, +faststart,
 // -shortest when audio present, fallback to -an re-encode on failure.
-// Throws std::runtime_error with ffmpeg stderr tail on total failure.
+// codec selects the video encoder: "h264" (default = libx264, unchanged) or
+// "h265" (libx265 + -tag:v hvc1 for QuickTime/macOS). Any other value falls
+// back to h264 (the CLI validates first). Throws std::runtime_error with
+// ffmpeg stderr tail on total failure.
 void encode_compatible_mp4(const std::string& temp_video, const std::string& output,
-                           const std::optional<std::string>& audio_source);
+                           const std::optional<std::string>& audio_source,
+                           const std::string& codec = "h264");
 
 // Python: cleanup_temp_files — delete temp mp4v after successful mux.
 void remove_file(const std::string& path);
