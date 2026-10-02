@@ -149,7 +149,8 @@ BadmintonAnalysisSystem::BadmintonAnalysisSystem(SystemOptions options)
                                 "its path with --yolo-pose-model.");
     }
 
-    pose_processor_ = std::make_unique<YoloPoseProcessor>(opts_.pose_model_path);
+    pose_processor_ = std::make_unique<YoloPoseProcessor>(
+        opts_.pose_model_path, opts_.pose_conf, opts_.pose_imgsz);
     if (!pose_processor_->ok()) {
         throw CodedError(2, "Failed to load pose model: " + opts_.pose_model_path);
     }

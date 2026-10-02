@@ -24,6 +24,10 @@ void print_usage() {
                  "                              (default: Good-Badminton/weights/yolo11s-ball.onnx)\n"
                  "  --yolo-pose-model PATH      pose ONNX\n"
                  "                              (default: Good-Badminton/weights/yolo11n-pose-dyn.onnx)\n"
+                 "  --pose-conf FLOAT           pose confidence threshold (default: 0.10;\n"
+                 "                              Python parity is 0.15 — lower catches far-side players)\n"
+                 "  --pose-imgsz INT            pose input size, multiple of 32 (default: 1600;\n"
+                 "                              Python parity is 960 — 1600 needed for small far players)\n"
                  "  --audio true|false          keep original audio (default: true)\n"
                  "  --display true|false        show video window (default: false, headless)\n"
                  "  --language zh|en|id        stats panel language (default: zh; zh renders EN text,\n"
@@ -106,6 +110,23 @@ int main(int argc, char** argv) {
             ball_arg = need("--ball-model");
         } else if (a == "--yolo-pose-model" || a == "--pose-model") {
             pose_arg = need("--yolo-pose-model");
+        } else if (a == "--pose-conf") {
+            try {
+                opts.pose_conf = std::stod(need("--pose-conf"));
+            } catch (const std::exception&) {
+                bad_value = true;
+            }
+            if (opts.pose_conf <= 0.0 || opts.pose_conf > 1.0) bad_value = true;
+        } else if (a == "--pose-imgsz") {
+            try {
+                opts.pose_imgsz = std::stoi(need("--pose-imgsz"));
+            } catch (const std::exception&) {
+                bad_value = true;
+            }
+            if (opts.pose_imgsz < 320 || opts.pose_imgsz > 4096 ||
+                opts.pose_imgsz % 32 != 0) {
+                bad_value = true;
+            }
         } else if (a == "--audio") {
             if (!parse_bool(need("--audio"), opts.keep_audio)) bad_value = true;
         } else if (a == "--display") {
@@ -148,7 +169,7 @@ int main(int argc, char** argv) {
         }
     }
     if (bad_value) {  // argparse would exit 2; exit 2 is reserved for model load
-        std::cerr << "Invalid true/false or language value (see --help).\n";
+        std::cerr << "Invalid option value (see --help).\n";
         return 1;
     }
 

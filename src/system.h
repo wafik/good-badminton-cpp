@@ -51,6 +51,14 @@ struct SystemOptions {
     bool show_player_stats = true;           // main.py --player-stats default true
     bool show_pose_roi = true;               // main.py --pose-roi default true
 
+    // Deviasi sadar dari Python (conf=0.15, imgsz=960): di video portrait
+    // jauh, pemain sisi atas dapat conf ~0.001 di imgsz 960 (tak terdeteksi
+    // pada threshold mana pun). imgsz 1600 menaikkannya ke ~0.11-0.25;
+    // conf 0.10 menangkap itu. False positive ekstra tersaring is_on_court
+    // + slot gate. --pose-conf / --pose-imgsz menimpa nilai ini.
+    double pose_conf = 0.10;
+    int pose_imgsz = 1600;
+
     // ponytail: --save-images / --visualize-positions tetap pin ke default
     // Python (--save-images default false, --visualize-positions default true,
     // tanpa flag CLI); heatmaps tetap Python-side per spec.
